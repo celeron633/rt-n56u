@@ -1,7 +1,7 @@
 # 在 WSL 下编译 Padavan
 
-本文以 HC5761 为例。默认精简配置保留双频 Wi-Fi、有线网络、IPv6 和中文 Web 管理，
-关闭可选工具、SSH/FTP 服务、USB/SD 及多媒体功能。已验证的环境是 WSL 下的 Debian 13、项目预编译的
+本文以 HC5761 为例。默认精简配置保留双频 Wi-Fi、有线网络、IPv6、中文 Web 管理和 Dropbear SSH 服务，
+关闭其余可选工具、FTP 服务、USB/SD 及多媒体功能。已验证的环境是 WSL 下的 Debian 13、项目预编译的
 MIPS GCC 7.4.0 工具链和 GNU Make 4.3。已验证通过 `build_firmware_tmp HC5761`
 在临时源码副本中完成整包构建；构建产物和日志均保存在源码仓库外。HC5761 尚未实机验证。
 

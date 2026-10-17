@@ -99,21 +99,14 @@ if test "$hardenbuild" -eq 1; then
 			[AC_MSG_NOTICE([Not setting $TESTFLAGS]); LDFLAGS="$OLDLDFLAGS" ]
 			)
 	fi # non-static
-	# stack protector. -strong is good but only in gcc 4.9 or later
+	# Stack protection also needs runtime support (for example libssp).
+	# A compile-only test can succeed even when the toolchain cannot link it.
 	OLDCFLAGS="$CFLAGS"
 	TESTFLAGS="-fstack-protector-strong"
 	CFLAGS="$CFLAGS $TESTFLAGS"
-	AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])], 
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([], [[volatile char buffer[32]; buffer[0] = 0;]])],
 	    [AC_MSG_NOTICE([Setting $TESTFLAGS])], 
-	    [
-			CFLAGS="$OLDCFLAGS"
-			TESTFLAGS=""
-			CFLAGS="$CFLAGS $TESTFLAGS"
-			AC_COMPILE_IFELSE([AC_LANG_PROGRAM([])], 
-			    [AC_MSG_NOTICE([Setting $TESTFLAGS])], 
-			    [AC_MSG_NOTICE([Not setting $TESTFLAGS]); CFLAGS="$OLDCFLAGS" ]
-			    )
-	    ]
+	    [AC_MSG_NOTICE([Not setting $TESTFLAGS]); CFLAGS="$OLDCFLAGS"]
 	    )
 	# FORTIFY_SOURCE
 	DB_TRYADDCFLAGS([-D_FORTIFY_SOURCE=2])
