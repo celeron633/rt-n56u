@@ -231,6 +231,10 @@ set_timezone(void)
 static void
 init_gpio_leds_buttons(void)
 {
+#if defined (BOARD_HC5761)
+	/* MT7620 WLED/GPIO72 is driven by the software 2.4 GHz LED. */
+	cpu_gpio_mode_set_bit(13, 1);
+#endif
 	/* hide WiFi 2G soft-led  */
 #if defined (BOARD_GPIO_LED_SW2G)
 	cpu_gpio_set_pin_direction(BOARD_GPIO_LED_SW2G, 1);

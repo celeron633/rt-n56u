@@ -114,6 +114,8 @@ Contributors of this project are not responsible for what happens next.
 
 ### 编译说明 ###
 
+WSL 用户请参阅 [WSL 编译指南](docs/build-wsl.md)，包含工具链、GNU Make 4.3、构建和常见问题处理。
+
 * 安装依赖包
 
 ```shell
@@ -191,11 +193,11 @@ nano /opt/rt-n56u/trunk/configs/templates/PSG1218.config
 ```shell
 cd /opt/rt-n56u/trunk
 # 对于WSL环境，建议使用sudo进行编译，或者使用fakeroot-tcp代替fakeroot
-fakeroot ./build_firmware_modify PSG1218
+fakeroot ./build_firmware_tmp PSG1218
 # 脚本第一个参数为路由型号，在trunk/configs/templates/中
-# 编译好的固件在trunk/images里
-# 首次编译完成后，如果需要再次编译其它固件，需要执行清理脚本：
-./clear_tree
+# 固件及日志位于脚本打印的 /tmp/padavan-PSG1218.*/ 目录中。
+# 每次创建新的源码副本，切换机型无需清理原仓库。
+# 新增源码文件须先 git add；已有文件的未提交修改会复制到构建副本。
 ```
 
 ***
@@ -203,4 +205,3 @@ fakeroot ./build_firmware_modify PSG1218
 ### 请参阅 ###
 - https://www.jianshu.com/p/cb51fb0fb2ac
 - https://www.jianshu.com/p/6b8403cdea46
-

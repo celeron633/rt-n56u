@@ -68,7 +68,10 @@ typedef u32 netdev_features_t;
 #define RAETH_HW_CL45		/* FE support native MDIO 'clause 45' access */
 #endif
 
-#if defined (CONFIG_RALINK_MT7621)
+#if defined (CONFIG_MTD_HC5761_LAYOUT)
+#define MTD_GMAC0_OFFSET	0x04
+#define MTD_GMAC2_OFFSET	0x04
+#elif defined (CONFIG_RALINK_MT7621)
 #define MTD_GMAC0_OFFSET	0xE000
 #define MTD_GMAC2_OFFSET	0xE006
 #else

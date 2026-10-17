@@ -1,0 +1,90 @@
+#!/bin/bash
+# Run the legacy in-tree build in a fresh working-copy snapshot.
+set -euo pipefail
+
+usage() {
+	echo "Usage: sudo $0 PRODUCT [TEMP_PARENT]" >&2
+	echo "Default TEMP_PARENT: /tmp; all outputs stay in a new padavan-PRODUCT.* directory." >&2
+}
+
+if (( $# < 1 || $# > 2 )); then
+	usage
+	exit 1
+fi
+product=$1
+if [[ ! $product =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
+	echo "Invalid product name: $product" >&2
+	exit 1
+fi
+if (( EUID != 0 )); then
+	usage
+	exit 1
+fi
+
+source_root=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)
+temp_parent=$(cd -- "${2:-/tmp}" && pwd -P)
+# The legacy makefiles do not support whitespace in build/toolchain paths.
+if [[ $source_root =~ [[:space:]] || $temp_parent =~ [[:space:]] ]]; then
+	echo "Source and temporary directory paths must not contain whitespace." >&2
+	exit 1
+fi
+case "$temp_parent/" in
+	"$source_root/"*)
+		echo "Choose a temporary directory outside the source repository." >&2
+		exit 1
+		;;
+esac
+
+cd -- "$source_root"
+git ls-files --error-unmatch -- "trunk/configs/templates/$product.config" >/dev/null
+if [[ ! -f trunk/configs/templates/$product.config ]]; then
+	echo "Missing template: $product" >&2
+	exit 1
+fi
+toolchain="$source_root/toolchain-mipsel"
+if [[ ! -x $toolchain/toolchain-3.4.x/bin/mipsel-linux-uclibc-gcc ]]; then
+	echo "Install the toolchain first: cd toolchain-mipsel && sh dl_toolchain.sh" >&2
+	exit 1
+fi
+
+workdir=$(mktemp -d "$temp_parent/padavan-$product.XXXXXX")
+chmod 755 "$workdir"
+finish() {
+	local status=$?
+	trap - EXIT
+	# Make sudo-created output accessible to the invoking user, without following
+	# the shared toolchain symlink or changing its ownership.
+	if [[ ${SUDO_UID:-} =~ ^[0-9]+$ && ${SUDO_GID:-} =~ ^[0-9]+$ ]]; then
+		chown -hR "$SUDO_UID:$SUDO_GID" "$workdir" || true
+	fi
+	echo "Build directory: $workdir"
+	echo "Build log: $workdir/build.log"
+	if (( status == 0 )); then
+		echo "Firmware: $workdir/trunk/images/"
+	else
+		echo "Build failed (exit $status); the snapshot is retained for inspection." >&2
+	fi
+	exit "$status"
+}
+trap finish EXIT
+
+echo "Preparing build snapshot: $workdir"
+# Read tracked paths from Git, but copy their working-tree contents (including
+# edits not yet committed). New source files must be added with git add first.
+# No hardlinks: generators must never overwrite the original source files.
+git ls-files --cached --deduplicate -z -- trunk |
+	tar --null --verbatim-files-from --no-recursion -T - -cf - |
+	tar -xf - -C "$workdir"
+ln -s -- "$toolchain" "$workdir/toolchain-mipsel"
+export FIRMWARE_BUILDS_REV
+FIRMWARE_BUILDS_REV=$(git rev-parse --short=7 HEAD)
+printf '%s\n' "$FIRMWARE_BUILDS_REV" > "$workdir/source-revision.txt"
+
+cd -- "$workdir/trunk"
+./build_firmware_modify "$product" 2>&1 | tee "$workdir/build.log"
+shopt -s nullglob
+images=(images/*.trx)
+if (( ${#images[@]} == 0 )); then
+	echo "Build returned without producing a firmware image." >&2
+	exit 1
+fi

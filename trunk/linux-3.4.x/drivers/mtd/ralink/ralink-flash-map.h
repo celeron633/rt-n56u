@@ -65,10 +65,32 @@ static struct mtd_partition rt2880_partitions[] = {
 		size:   0,			/* calc */
 		offset: MTD_KERNEL_PART_OFFSET,
 	}
+#if defined (CONFIG_MTD_HC5761_LAYOUT)
+	, {
+		name:   "oem",
+		size:   0x20000,
+		offset: 0xfc0000,
+		mask_flags: MTD_WRITEABLE,
+	}, {
+		name:   "bdinfo",
+		size:   0x10000,
+		offset: 0xfe0000,
+		mask_flags: MTD_WRITEABLE,
+	}, {
+		name:   "backup",
+		size:   0x10000,
+		offset: 0xff0000,
+		mask_flags: MTD_WRITEABLE,
+	}
+#endif
 };
 
 inline void recalc_partitions(uint64_t flash_size, uint32_t kernel_size)
 {
+#if defined (CONFIG_MTD_HC5761_LAYOUT)
+	/* OEM data is outside both Storage and the upgrade partition. */
+	flash_size = 0xfc0000;
+#endif
 	/* first, calc "Storage" size (use 256K for >= 16MB flash) */
 #if !defined (CONFIG_MTD_STORE_PART_SIZ)
 	if (flash_size > 0x00800000)

@@ -167,6 +167,14 @@ endif
 	#===========================================
 endif
 	# Pack final image and write headers
+ifeq ($(CONFIG_MTD_HC5761_LAYOUT),y)
+	@MAX_SIZE=$$(( 0xfc0000 - 0x50000 - $(CONFIG_MTD_STORE_PART_SIZ) - 64 )); \
+	SIZE=$$(wc -c < $(KERNELZ).$(COMP)); \
+	if [ $$SIZE -gt $$MAX_SIZE ]; then \
+		echo "HC5761 image exceeds $$MAX_SIZE bytes (Storage and OEM data reserved)"; \
+		exit 1; \
+	fi
+endif
 ifeq ($(CONFIG_ROOTFS_IN_FLASH_NO_PADDING),)
 	@cd $(IMAGEDIR) ; \
 	ENTRY=`LANG=C LC_ALL=C $(ENTRY_CMD)` ; \

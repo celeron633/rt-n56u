@@ -113,6 +113,14 @@ config MTD_NAND_USE_UBI_PART
 	select MTD_UBI
 	select MTD_UBI_GLUEBI
 
+config MTD_HC5761_LAYOUT
+	bool "HiWiFi HC5761 SPI flash layout"
+	default n
+	depends on MTD_SPI_RALINK && RALINK_MT7620 && RT2880_FLASH_16M
+	help
+	  Preserve the OEM, board information and backup partitions in the
+	  final 256 KiB. Padavan Storage is placed before these partitions.
+
 config MTD_NETGEAR_LAYOUT
 	bool "NETGEAR flash layout"
 	default n
