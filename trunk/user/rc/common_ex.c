@@ -168,6 +168,12 @@ get_eeprom_params(void)
 	if (i_ret >= 0 && !(buffer[0] & 0x01))
 		ether_etoa(buffer, macaddr_rt);
 
+#if defined (BOARD_HC5761)
+	if (get_hc5761_wired_macs(buffer, buffer + ETHER_ADDR_LEN) == 0) {
+		ether_etoa(buffer, macaddr_lan);
+		ether_etoa(buffer + ETHER_ADDR_LEN, macaddr_wan);
+	}
+#else
 	i_offset = get_wired_mac_e2p_offset(0);
 	memset(buffer, 0xff, ETHER_ADDR_LEN);
 	i_ret = flash_mtd_read(MTD_PART_NAME_FACTORY, i_offset, buffer, ETHER_ADDR_LEN);
@@ -210,6 +216,7 @@ get_eeprom_params(void)
 		}
 	}
 
+#endif
 	nvram_set_temp("il0macaddr", macaddr_lan); // LAN
 	nvram_set_temp("il1macaddr", macaddr_wan); // WAN
 	nvram_set_temp("wl_macaddr", macaddr_wl);  // 5 GHz

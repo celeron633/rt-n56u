@@ -16,6 +16,8 @@
  */
 
 #include <stdio.h>
+#include <ctype.h>
+#include <stdlib.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
@@ -159,6 +161,80 @@ static const struct cc_t {
 	{ "DB",  5,  7,  0 }
 };
 
+#if defined (BOARD_HC5761)
+/* HC5761 stores its device MAC as text, separate from radio calibration. */
+static int
+hc5761_mac_valid(const unsigned char *mac)
+{
+	static const unsigned char zero[ETHER_ADDR_LEN] = {0};
+	return !(mac[0] & 1) && memcmp(mac, zero, ETHER_ADDR_LEN) != 0;
+}
+
+static int
+hc5761_parse_bdinfo_mac(const unsigned char *data, size_t size, unsigned char *mac)
+{
+	static const char key[] = "Vfac_mac = ";
+	const size_t keylen = sizeof(key) - 1;
+	size_t i, j, start;
+	char value[18];
+	unsigned char parsed[ETHER_ADDR_LEN];
+
+	if (size < keylen + sizeof(value))
+		return -1;
+	for (i = 0; i <= size - keylen - sizeof(value); i++) {
+		if (memcmp(data + i, key, keylen) != 0)
+			continue;
+		start = i + keylen;
+		for (j = 0; j < 17; j++) {
+			if ((j % 3 == 2) ? data[start+j] != ':' : !isxdigit(data[start+j]))
+				break;
+		}
+		if (j != 17)
+			continue;
+		if (data[start+17] != '\n' && data[start+17] != '\r' &&
+		    data[start+17] != '\0' && data[start+17] != 0xff)
+			continue;
+		memcpy(value, data + start, 17);
+		value[17] = '\0';
+		if (ether_atoe(value, parsed) && hc5761_mac_valid(parsed)) {
+			memcpy(mac, parsed, ETHER_ADDR_LEN);
+			return 0;
+		}
+	}
+	return -1;
+}
+
+int
+get_hc5761_wired_macs(unsigned char *lan, unsigned char *wan)
+{
+	unsigned char base[ETHER_ADDR_LEN], next[ETHER_ADDR_LEN];
+	unsigned char *data = malloc(0x10000);
+	int ret = -1, i;
+
+	if (data) {
+		if (flash_mtd_read("bdinfo", 0, data, 0x10000) == 0)
+			ret = hc5761_parse_bdinfo_mac(data, 0x10000, base);
+		free(data);
+	}
+	/* Match OpenWrt's fallback without modifying Factory or bdinfo. */
+	if (ret != 0 && flash_mtd_read(MTD_PART_NAME_FACTORY,
+			OFFSET_MAC_ADDR_WSOC, base, ETHER_ADDR_LEN) != 0)
+		return -1;
+	if (!hc5761_mac_valid(base))
+		return -1;
+	memcpy(next, base, ETHER_ADDR_LEN);
+	/* WAN = LAN + 1, including carry; OR 3 can produce the same address. */
+	for (i = ETHER_ADDR_LEN - 1; i >= 0; i--)
+		if (++next[i] != 0)
+			break;
+	if (!hc5761_mac_valid(next))
+		return -1;
+	memcpy(lan, base, ETHER_ADDR_LEN);
+	memcpy(wan, next, ETHER_ADDR_LEN);
+	return 0;
+}
+#endif
+
 inline int
 get_wired_mac_is_single(void)
 {
@@ -190,6 +266,14 @@ get_wired_mac(int is_wan)
 {
 	char macaddr[18] = {0};
 	unsigned char buffer[ETHER_ADDR_LEN] = {0};
+#if defined (BOARD_HC5761)
+	unsigned char wan[ETHER_ADDR_LEN];
+
+	if (get_hc5761_wired_macs(buffer, wan) != 0)
+		return -1;
+	if (is_wan)
+		memcpy(buffer, wan, ETHER_ADDR_LEN);
+#else
 	int i_offset;
 
 	i_offset = get_wired_mac_e2p_offset(is_wan);
@@ -200,6 +284,7 @@ get_wired_mac(int is_wan)
 
 	if (is_wan && get_wired_mac_is_single())
 		buffer[5] |= 0x03;	// last 2 bits reserved for MBSSID, use 0x03 for WAN (ra1: 0x01, apcli0: 0x02)
+#endif
 
 	ether_etoa(buffer, macaddr);
 
@@ -211,6 +296,11 @@ get_wired_mac(int is_wan)
 int
 set_wired_mac(int is_wan, const char *mac)
 {
+#if defined (BOARD_HC5761)
+	/* Factory MAC bytes belong to WiFi calibration; bdinfo is read-only. */
+	puts("HC5761 device MAC is read-only; use the WAN MAC clone setting.");
+	return EOPNOTSUPP;
+#else
 	unsigned char ea[ETHER_ADDR_LEN] = {0};
 	int i_offset;
 
@@ -234,6 +324,7 @@ set_wired_mac(int is_wan, const char *mac)
 	}
 
 	return 0;
+#endif
 }
 
 inline int

@@ -671,6 +671,9 @@ void ip2class(const char *addr, const char *mask, char *out_buf, size_t out_len)
 void start_firewall_ex(void);
 
 /* ralink.c */
+#if defined (BOARD_HC5761)
+int get_hc5761_wired_macs(unsigned char *lan, unsigned char *wan);
+#endif
 int get_wired_mac_is_single(void);
 int get_wired_mac_e2p_offset(int is_wan);
 int get_wired_mac(int is_wan);
