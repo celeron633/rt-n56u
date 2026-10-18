@@ -121,6 +121,16 @@ config MTD_HC5761_LAYOUT
 	  Preserve the OEM, board information and backup partitions in the
 	  final 256 KiB. Padavan Storage is placed before these partitions.
 
+config MTD_K2_V22_5_LAYOUT
+	bool "Phicomm K2 v22.5 or newer SPI flash layout"
+	default n
+	depends on MTD_SPI_RALINK && RALINK_MT7620
+	help
+	  Preserve the read-only permanent_config partition at 0x50000
+	  (320 KiB) and start firmware at 0xa0000. Use this for K2 with
+	  the official v22.5 or newer bootloader, including v22.6.
+	  K2 v22.4 or older starts firmware at 0x50000 without this option.
+
 config MTD_NETGEAR_LAYOUT
 	bool "NETGEAR flash layout"
 	default n

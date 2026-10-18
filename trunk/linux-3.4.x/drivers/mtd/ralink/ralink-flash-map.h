@@ -22,7 +22,13 @@
 #define IMAGE1_SIZE			CONFIG_RT2880_MTD_PHYSMAP_LEN
 #endif
 
-#define MTD_KERNEL_PART_OFFSET		(MTD_BOOT_PART_SIZE + MTD_CONFIG_PART_SIZE + MTD_FACTORY_PART_SIZE)
+#if defined (CONFIG_MTD_K2_V22_5_LAYOUT)
+#define MTD_PERMANENT_CONFIG_PART_SIZE	0x00050000	/* 320K */
+#else
+#define MTD_PERMANENT_CONFIG_PART_SIZE	0
+#endif
+
+#define MTD_KERNEL_PART_OFFSET		(MTD_BOOT_PART_SIZE + MTD_CONFIG_PART_SIZE + MTD_FACTORY_PART_SIZE + MTD_PERMANENT_CONFIG_PART_SIZE)
 
 #if defined (CONFIG_RT2880_ROOTFS_IN_FLASH)
 #define MTD_STORE_PART_IDX		5
@@ -65,6 +71,15 @@ static struct mtd_partition rt2880_partitions[] = {
 		size:   0,			/* calc */
 		offset: MTD_KERNEL_PART_OFFSET,
 	}
+#if defined (CONFIG_MTD_K2_V22_5_LAYOUT)
+	/* Keep the existing Kernel/RootFS/Storage/Firmware_Stub indices. */
+	, {
+		name:   "permanent_config",
+		size:   MTD_PERMANENT_CONFIG_PART_SIZE,
+		offset: MTD_BOOT_PART_SIZE + MTD_CONFIG_PART_SIZE + MTD_FACTORY_PART_SIZE,
+		mask_flags: MTD_WRITEABLE,
+	}
+#endif
 #if defined (CONFIG_MTD_HC5761_LAYOUT)
 	, {
 		name:   "oem",

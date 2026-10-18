@@ -33,6 +33,12 @@ FLASH_SIZE = 8
 endif
 endif
 
+ifeq ($(CONFIG_MTD_K2_V22_5_LAYOUT),y)
+SPI_FIRMWARE_OFFSET = 0xa0000
+else
+SPI_FIRMWARE_OFFSET = 0x50000
+endif
+
 ifeq ($(CONFIG_WITHOUT_KERNEL),y)
 ENTRY_CMD = $(MKIMAGE_DIR)/mkimage -l $(UBOOT_HEADER) 2>/dev/null |grep "Entry" |awk '{print $$3}'
 else
@@ -157,7 +163,7 @@ ifneq ($(filter y,$(CONFIG_MTD_NAND_MTK) $(CONFIG_MTD_NAND_RALINK)),)
 	echo "# can't bigger than $$MAX_SIZE !!!"
 else
 ifneq ($(CONFIG_RT2880_FLASH_AUTO),y)
-	@MAX_SIZE=$$(( $(FLASH_SIZE)*1024*1024 - 320*1024 - $(CONFIG_MTD_STORE_PART_SIZ) - 64 )) ; \
+	@MAX_SIZE=$$(( $(FLASH_SIZE)*1024*1024 - $(SPI_FIRMWARE_OFFSET) - $(CONFIG_MTD_STORE_PART_SIZ) - 64 )) ; \
 	echo "# can't bigger than: $$MAX_SIZE !!!"
 else
 	# can't bigger than: flash size - storage partition size -
@@ -167,6 +173,14 @@ endif
 	#===========================================
 endif
 	# Pack final image and write headers
+ifeq ($(CONFIG_MTD_K2_V22_5_LAYOUT),y)
+	@MAX_SIZE=$$(( $(FLASH_SIZE)*1024*1024 - $(SPI_FIRMWARE_OFFSET) - $(CONFIG_MTD_STORE_PART_SIZ) - 64 )); \
+	SIZE=$$(wc -c < $(KERNELZ).$(COMP)); \
+	if [ $$SIZE -gt $$MAX_SIZE ]; then \
+		echo "K2 v22.5+ image exceeds $$MAX_SIZE bytes (permanent_config and Storage reserved)"; \
+		exit 1; \
+	fi
+endif
 ifeq ($(CONFIG_MTD_HC5761_LAYOUT),y)
 	@MAX_SIZE=$$(( 0xfc0000 - 0x50000 - $(CONFIG_MTD_STORE_PART_SIZ) - 64 )); \
 	SIZE=$$(wc -c < $(KERNELZ).$(COMP)); \
