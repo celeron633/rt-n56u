@@ -67,7 +67,7 @@ Contributors of this project are not responsible for what happens next.
 
 - 已适配除官方适配外的以下机型
 >- PSG1208
->- PSG1218 / K2（区分 v22.4 及更早、v22.5 及更新布局）
+>- PSG1218 / K2
 >- 5K-W20 (USB)
 >- OYE-001 (USB)
 >- NEWIFI-MINI (USB)
@@ -116,23 +116,7 @@ Contributors of this project are not responsible for what happens next.
 
 WSL 用户请参阅 [WSL 编译指南](docs/build-wsl.md)，包含工具链、GNU Make 4.3、构建和常见问题处理。
 
-K2（PSG1218）按原厂固件/引导器使用的分区布局选择编译目标：
-
-| 原厂版本对应的布局 | 目标 | nano 兼容目标 | 固件起点 |
-| --- | --- | --- | --- |
-| 22.4 及更早 | `K2-v22.4` | `K2-v22.4_nano` | `0x50000` |
-| 22.5 及以后，包括 22.6 | `K2-v22.5` | `K2-v22.5_nano` | `0xa0000` |
-
-例如在 `trunk` 下运行 `fakeroot ./build_firmware_modify K2-v22.5_nano`。
-旧目标 `PSG1218` / `PSG1218_nano` 保留为旧布局兼容入口。
-版本划分依据 [OpenWrt 的 K2 分区布局变更](https://lists.infradead.org/pipermail/lede-commits/2021-August/011498.html)：
-新布局在 `0x50000–0x9ffff` 保留 320 KiB 的只读 `permanent_config`。
-两套配置均沿用原 PSG1218 的 512 KiB Padavan Storage；8 MiB 闪存中 Kernel + RootFS
-（含镜像头）的可用空间分别为 `0x730000`、`0x6e0000` 字节，新布局打包时会拒绝超限镜像。
-两个版本默认均与 HC5761 一样精简：保留双频 Wi-Fi、有线网络、IPv6、中文 WebUI 和 Dropbear SSH，
-关闭其余可选服务和工具。`_nano` 兼容目标目前使用相同的功能选项。
-更换过引导器的设备应按实际启动偏移选择；
-生成的 `.trx` 用于支持对应布局的引导器或 Padavan 升级，不是原厂升级包或 OpenWrt sysupgrade 包。
+K2 的版本选择、分区布局和编译目标见 [K2 适配说明](docs/k2.md)。
 
 * 安装依赖包
 
@@ -203,7 +187,7 @@ sh dl_toolchain.sh
 * (可选) 修改机型配置文件
 
 ```shell
-nano /opt/rt-n56u/trunk/configs/templates/K2-v22.4.config
+nano /opt/rt-n56u/trunk/configs/templates/PSG1218.config
 ```
 
 * 开始编译
@@ -211,9 +195,9 @@ nano /opt/rt-n56u/trunk/configs/templates/K2-v22.4.config
 ```shell
 cd /opt/rt-n56u/trunk
 # 对于WSL环境，建议使用sudo进行编译，或者使用fakeroot-tcp代替fakeroot
-fakeroot ./build_firmware_tmp K2-v22.4
+fakeroot ./build_firmware_tmp PSG1218
 # 脚本第一个参数为路由型号，在trunk/configs/templates/中
-# 固件及日志位于脚本打印的 /tmp/padavan-K2-v22.4.*/ 目录中。
+# 固件及日志位于脚本打印的 /tmp/padavan-PSG1218.*/ 目录中。
 # 每次创建新的源码副本，切换机型无需清理原仓库。
 # 新增源码文件须先 git add；已有文件的未提交修改会复制到构建副本。
 ```
